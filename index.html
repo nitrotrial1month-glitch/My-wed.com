@@ -1,1 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EasyToHost Cloud Management Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { display: flex; height: 100vh; background-color: #0f0f11; color: #e1e1e6; }
+        
+        /* Sidebar Navigation */
+        .sidebar { width: 240px; background-color: #16161a; border-right: 1px solid #24242b; padding: 20px 10px; display: flex; flex-direction: column; gap: 10px; }
+        .sidebar h2 { font-size: 18px; color: #fff; margin-bottom: 20px; text-align: center; letter-spacing: 1px; }
+        .nav-btn { background: none; border: none; color: #a1a1aa; padding: 12px 15px; text-align: left; font-size: 15px; cursor: pointer; border-radius: 6px; transition: 0.2s; }
+        .nav-btn:hover, .nav-btn.active { background-color: #24242b; color: #fff; font-weight: bold; }
+
+        /* Main App Area */
+        .main-content { flex-grow: 1; padding: 25px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
+        .workspace { display: none; height: 100%; flex-direction: column; }
+        .workspace.active { display: flex; }
+
+        /* Control Panel Header */
+        .editor-controls { display: flex; gap: 12px; margin-bottom: 15px; }
+        button.action-btn { padding: 8px 16px; font-size: 14px; border: none; border-radius: 4px; cursor: pointer; font-weight: 6px; transition: 0.2s; }
+        .btn-blue { background-color: #007bff; color: white; }
+        .btn-green { background-color: #28a745; color: white; }
+        .btn-danger { background-color: #dc3545; color: white; }
+        button.action-btn:hover { opacity: 0.9; }
+
+        /* Expanded Code Area Layout */
+        .editor-layout { display: flex; gap: 20px; flex-grow: 1; height: 75vh; }
+        .file-tree { width: 200px; background: #16161a; border: 1px solid #24242b; border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+        .file-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: #24242b; border-radius: 4px; font-size: 14px; cursor: pointer; }
+        
+        /* 🖥️ BIG TEXTAREA: কোড লেখার বিশাল বড় স্ক্রিন */
+        .editor-box { flex-grow: 1; height: 100%; }
+        #codeEditor { width: 100%; height: 100%; background-color: #1e1e24; color: #39ec7d; font-family: 'Courier New', Courier, monospace; font-size: 15px; padding: 20px; border: 1px solid #24242b; border-radius: 6px; resize: none; outline: none; line-height: 1.5; }
+
+        /* Dynamic Env Panel Layout */
+        .env-row { display: flex; gap: 10px; margin-bottom: 12px; align-items: center; }
+        .env-row input { background: #1e1e24; border: 1px solid #24242b; padding: 10px; color: #fff; border-radius: 4px; font-size: 14px; }
+        .env-key { width: 250px; }
+        .env-val { flex-grow: 1; }
+
+        /* Terminal Logs Console */
+        .console-box { background-color: #000; border: 1px solid #24242b; border-radius: 6px; padding: 15px; font-family: monospace; height: 300px; overflow-y: auto; color: #00ff00; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>EasyToHost 🚀</h2>
+        <button class="nav-btn active" onclick="switchTab('source-code', this)">📂 Source Code</button>
+        <button class="nav-btn" onclick="switchTab('infrastructure', this)">🎛️ Infrastructure</button>
+        <button class="nav-btn" onclick="switchTab('env-panel', this)">⚙️ Env Panel</button>
+    </div>
+
+    <div class="main-content">
+
+        <div id="source-code" class="workspace active">
+            <div class="editor-controls">
+                <button class="action-btn btn-blue" onclick="createNewFile()">➕ Create New File</button>
+                <button class="action-btn btn-green" onclick="saveWholeFolder()">💾 Save Whole Folder</button>
+            </div>
+            <div class="editor-layout">
+                <div class="file-tree" id="fileList">
+                    <div class="file-item" onclick="openFile('main.py')">
+                        <span>main.py</span>
+                    </div>
+                    <div class="file-item" onclick="openFile('moderation.py')">
+                        <span>moderation.py</span>
+                    </div>
+                </div>
+                <div class="editor-box">
+                    <textarea id="codeEditor" placeholder="// Write your professional Python or Java code here..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div id="infrastructure" class="workspace">
+            <div class="editor-controls">
+                <button class="action-btn btn-green" onclick="triggerDeployment()">🟢 Trigger Deployment</button>
+                <button class="action-btn btn-danger" onclick="terminateAllocation()">🔴 Terminate Allocation</button>
+            </div>
+            <h3 style="margin-bottom: 10px;">Live Server Execution Logs</h3>
+            <div class="console-box" id="terminalConsole">> EasyToHost Engine initialized. Awaiting cloud bridge allocation...</div>
+        </div>
+
+        <div id="env-panel" class="workspace">
+            <div style="margin-bottom: 20px;">
+                <button class="action-btn btn-blue" onclick="addNewEnvField('', '')">➕ Add New Variable</button>
+            </div>
+            <div id="envFieldsList">
+                </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ভার্চুয়াল ক্লায়েন্ট-সাইড মেমরি ডেটা ট্র্যাকিং
+        let virtualFiles = {
+            "main.py": "# Default Python Engine Main Entry\nimport discord\nprint('Bot Core Loaded')",
+            "moderation.py": "# Custom Hybrid Moderation Engine Modules"
+        };
+        let currentFile = "main.py";
+        let envVariables = {};
+
+        document.getElementById('codeEditor').value = virtualFiles[currentFile];
+
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.workspace').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        function openFile(fileName) {
+            virtualFiles[currentFile] = document.getElementById('codeEditor').value;
+            currentFile = fileName;
+            document.getElementById('codeEditor').value = virtualFiles[fileName] || "";
+        }
+
+        function createNewFile() {
+            let name = prompt("Enter new file name (e.g., config.json, test.py):");
+            if(name) {
+                virtualFiles[name] = "";
+                renderFileTree();
+                openFile(name);
+            }
+        }
+
+        function deleteFile(fileName, event) {
+            event.stopPropagation();
+            if(confirm(`Are you sure you want to delete ${fileName}?`)) {
+                delete virtualFiles[fileName];
+                renderFileTree();
+                document.getElementById('codeEditor').value = "";
+            }
+        }
+
+        function renderFileTree() {
+            let html = "";
+            for(let file in virtualFiles) {
+                html += `<div class="file-item" onclick="openFile('${file}')">
+                            <span>${file}</span>
+                            <span style="color:#ff4d4d; font-weight:bold;" onclick="deleteFile('${file}', event)">🗑️</span>
+                         </div>`;
+            }
+            document.getElementById('fileList').innerHTML = html;
+        }
+
+        // ডাইনামিক এনভায়রনমেন্ট রো জেনারেটর
+        function addNewEnvField(key = '', val = '') {
+            let container = document.getElementById('envFieldsList');
+            let row = document.createElement('div');
+            row.className = 'env-row';
+            row.innerHTML = `
+                <input type="text" class="env-key" placeholder="VARIABLE_KEY (e.g., AWS_INSTANCE_ID)" value="${key}">
+                <input type="text" class="env-val" placeholder="VALUE" value="${val}">
+                <button class="action-btn btn-blue" onclick="saveSingleEnv(this)">💾 Save</button>
+                <button class="action-btn btn-danger" onclick="deleteSingleEnv(this)">🗑️ Delete</button>
+            `;
+            container.appendChild(row);
+        }
+
+        function saveSingleEnv(btn) {
+            let row = btn.parentElement;
+            let key = row.querySelector('.env-key').value.trim();
+            let val = row.querySelector('.env-val').value.trim();
+            if(key) {
+                envVariables[key] = val;
+                alert(`✅ Variable "${key}" saved successfully in current runtime bundle!`);
+            }
+        }
+
+        function deleteSingleEnv(btn) {
+            let row = btn.parentElement;
+            let key = row.querySelector('.env-key').value.trim();
+            if(key && envVariables[key]) delete envVariables[key];
+            row.remove();
+        }
+
+        // 💾 GLOBAL SAVE: এক ক্লিকে পুরো ফোল্ডার ও ভ্যারিয়েবল ব্যাকঅ্যান্ডে পাঠানো
+        function saveWholeFolder() {
+            virtualFiles[currentFile] = document.getElementById('codeEditor').value;
+            fetch('/api/save-folder', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ files: virtualFiles, env_vars: envVariables })
+            })
+            .then(res => res.json())
+            .then(data => alert(data.message));
+        }
+
+        // 🟢 TRIGGER DEPLOYMENT: AWS অ্যাক্টিভেট বাটন
+        function triggerDeployment() {
+            let consoleLog = document.getElementById('terminalConsole');
+            consoleLog.innerHTML += "\n> [EasyToHost]: Connecting to AWS cloud grid node via Boto3 core...";
+            
+            fetch('/api/trigger-deploy', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ env_vars: envVariables })
+            })
+            .then(res => res.json())
+            .then(data => {
+                consoleLog.innerHTML += `\n> [Response]: ${data.message}`;
+                consoleLog.scrollTop = consoleLog.scrollHeight;
+            });
+        }
+
+        // 🔴 TERMINATE ALLOCATION: AWS স্টপ বাটন
+        function terminateAllocation() {
+            let consoleLog = document.getElementById('terminalConsole');
+            fetch('/api/terminate-alloc', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ env_vars: envVariables })
+            })
+            .then(res => res.json())
+            .then(data => {
+                consoleLog.innerHTML += `\n> [Response]: ${data.message}`;
+                consoleLog.scrollTop = consoleLog.scrollHeight;
+            });
+        }
+
+        // কিছু ডিফল্ট প্রয়োজনীয় এডাব্লিউএস ফিল্ড লোড করে রাখা যাতে ইউজারের বুঝতে সুবিধা হয়
+        addNewEnvField('AWS_ACCESS_KEY_ID', '');
+        addNewEnvField('AWS_SECRET_ACCESS_KEY', '');
+        addNewEnvField('AWS_INSTANCE_ID', '');
+    </script>
+</body>
+  </html>
 
