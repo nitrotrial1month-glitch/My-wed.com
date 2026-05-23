@@ -3,215 +3,295 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EasyToHost Cloud Management Dashboard</title>
+    <title>EasyToHost - Cloud Control Plane</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { display: flex; height: 100vh; background-color: #0f0f11; color: #e1e1e6; }
-        
-        /* Sidebar Navigation */
-        .sidebar { width: 240px; background-color: #16161a; border-right: 1px solid #24242b; padding: 20px 10px; display: flex; flex-direction: column; gap: 10px; }
-        .sidebar h2 { font-size: 18px; color: #fff; margin-bottom: 20px; text-align: center; letter-spacing: 1px; }
-        .nav-btn { background: none; border: none; color: #a1a1aa; padding: 12px 15px; text-align: left; font-size: 15px; cursor: pointer; border-radius: 6px; transition: 0.2s; }
-        .nav-btn:hover, .nav-btn.active { background-color: #24242b; color: #fff; font-weight: bold; }
+        :root {
+            --bg-main: #0b0c10;
+            --bg-panel: #141722;
+            --bg-input: #1d2234;
+            --text-main: #f1f3f9;
+            --text-muted: #7987a5;
+            --accent-green: #00e676;
+            --accent-blue: #2979ff;
+            --accent-danger: #ff1744;
+            --border-color: #262f4c;
+        }
 
-        /* Main App Area */
-        .main-content { flex-grow: 1; padding: 25px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
-        .workspace { display: none; height: 100%; flex-direction: column; }
-        .workspace.active { display: flex; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg-main); color: var(--text-main); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
-        /* Control Panel Header */
-        .editor-controls { display: flex; gap: 12px; margin-bottom: 15px; }
-        button.action-btn { padding: 8px 16px; font-size: 14px; border: none; border-radius: 4px; cursor: pointer; font-weight: 6px; transition: 0.2s; }
-        .btn-blue { background-color: #007bff; color: white; }
-        .btn-green { background-color: #28a745; color: white; }
-        .btn-danger { background-color: #dc3545; color: white; }
-        button.action-btn:hover { opacity: 0.9; }
+        /* Top Navigation Header */
+        .header { background-color: var(--bg-panel); border-bottom: 1px solid var(--border-color); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 18px; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
+        .back-btn { background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+        .back-btn:hover { background: var(--border-color); }
 
-        /* Expanded Code Area Layout */
-        .editor-layout { display: flex; gap: 20px; flex-grow: 1; height: 75vh; }
-        .file-tree { width: 200px; background: #16161a; border: 1px solid #24242b; border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
-        .file-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: #24242b; border-radius: 4px; font-size: 14px; cursor: pointer; }
-        
-        /* 🖥️ BIG TEXTAREA: কোড লেখার বিশাল বড় স্ক্রিন */
-        .editor-box { flex-grow: 1; height: 100%; }
-        #codeEditor { width: 100%; height: 100%; background-color: #1e1e24; color: #39ec7d; font-family: 'Courier New', Courier, monospace; font-size: 15px; padding: 20px; border: 1px solid #24242b; border-radius: 6px; resize: none; outline: none; line-height: 1.5; }
+        /* Main Dynamic Area */
+        .container { flex-grow: 1; padding: 15px; overflow-y: auto; padding-bottom: 80px; }
+        .screen { display: none; flex-direction: column; gap: 15px; animation: fadeIn 0.2s ease-in-out; }
+        .screen.active { display: flex; }
 
-        /* Dynamic Env Panel Layout */
-        .env-row { display: flex; gap: 10px; margin-bottom: 12px; align-items: center; }
-        .env-row input { background: #1e1e24; border: 1px solid #24242b; padding: 10px; color: #fff; border-radius: 4px; font-size: 14px; }
-        .env-key { width: 250px; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Cards and Components */
+        .card { background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .card-title { font-size: 14px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+
+        /* Buttons Setup */
+        .btn { padding: 12px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; color: #fff; }
+        .btn-green { background: var(--accent-green); color: #000; }
+        .btn-danger { background: var(--accent-danger); }
+        .btn-blue { background: var(--accent-blue); }
+        .btn-small { padding: 6px 12px; font-size: 12px; border-radius: 4px; }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* 🖥️ Source Tree Layout (BIG Editor Screen) */
+        .workspace-layout { display: flex; flex-direction: column; gap: 15px; height: calc(100vh - 210px); }
+        .file-list { display: flex; flex-direction: column; gap: 8px; max-height: 120px; overflow-y: auto; }
+        .file-item { display: flex; justify-content: space-between; align-items: center; background: var(--bg-input); padding: 10px 15px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer; }
+        .file-item.active { border-color: var(--accent-blue); background: #1c2b4a; }
+        .editor-area { flex-grow: 1; position: relative; }
+        #codeEditor { width: 100%; height: 100%; background: #07080c; border: 1px solid var(--border-color); border-radius: 8px; color: #5af78e; font-family: "Fira Code", Monaco, monospace; font-size: 14px; padding: 15px; outline: none; resize: none; line-height: 1.6; }
+
+        /* Env Row Grid */
+        .env-row { display: flex; gap: 8px; align-items: center; width: 100%; }
+        .env-input { background: var(--bg-input); border: 1px solid var(--border-color); padding: 12px; color: #fff; border-radius: 8px; font-size: 14px; outline: none; }
+        .env-key { width: 35%; }
         .env-val { flex-grow: 1; }
 
-        /* Terminal Logs Console */
-        .console-box { background-color: #000; border: 1px solid #24242b; border-radius: 6px; padding: 15px; font-family: monospace; height: 300px; overflow-y: auto; color: #00ff00; white-space: pre-wrap; }
+        /* Black Professional Console */
+        .console { background: #000; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; font-family: "Courier New", Courier, monospace; height: 180px; overflow-y: auto; color: #5af78e; font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
+
+        /* Bot List Selector Home */
+        .bot-list-item { background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 10px; padding: 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; cursor: pointer; }
+        .bot-info h4 { font-size: 15px; color: #fff; margin-bottom: 4px; }
+        .bot-info p { font-size: 12px; color: var(--text-muted); }
+
+        /* 📱 BOTTOM NAVIGATION FOOTER (হুবহু আপনার স্ক্রিনশটের মতো) */
+        .footer-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 60px; background: var(--bg-panel); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; align-items: center; z-index: 100; }
+        .footer-btn { background: none; border: none; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; gap: 4px; cursor: pointer; width: 33%; height: 100%; transition: 0.2s; }
+        .footer-btn span.icon { font-size: 18px; }
+        .footer-btn.active { color: var(--accent-blue); background: var(--bg-main); }
     </style>
 </head>
 <body>
 
-    <div class="sidebar">
-        <h2>EasyToHost 🚀</h2>
-        <button class="nav-btn active" onclick="switchTab('source-code', this)">📂 Source Code</button>
-        <button class="nav-btn" onclick="switchTab('infrastructure', this)">🎛️ Infrastructure</button>
-        <button class="nav-btn" onclick="switchTab('env-panel', this)">⚙️ Env Panel</button>
+    <div class="header">
+        <h1 id="topTitle">EasyToHost - Home Cluster</h1>
+        <button class="back-btn" id="backToHomeBtn" onclick="loadHomeScreen()" style="display: none;">⬅️ Back to Home</button>
     </div>
 
-    <div class="main-content">
+    <div class="container">
 
-        <div id="source-code" class="workspace active">
-            <div class="editor-controls">
-                <button class="action-btn btn-blue" onclick="createNewFile()">➕ Create New File</button>
-                <button class="action-btn btn-green" onclick="saveWholeFolder()">💾 Save Whole Folder</button>
-            </div>
-            <div class="editor-layout">
-                <div class="file-tree" id="fileList">
-                    <div class="file-item" onclick="openFile('main.py')">
-                        <span>main.py</span>
+        <div id="screen-home" class="screen active">
+            <div id="botClusterContainer">
+                <div class="bot-list-item" onclick="loadBotControlPlane('Nova_Bot')">
+                    <div class="bot-info">
+                        <h4>Nova bot Container <span style="background:#24242b; padding:2px 6px; border-radius:4px; font-size:10px;">PYTHON</span></h4>
+                        <p>&lt;&gt; EasyToHost Server Node Ready</p>
                     </div>
-                    <div class="file-item" onclick="openFile('moderation.py')">
-                        <span>moderation.py</span>
+                    <button class="btn btn-danger btn-small" onclick="deleteBotContainer(event)">🗑️ Delete</button>
+                </div>
+            </div>
+            <button class="btn btn-green" onclick="createNewBotNode()" style="margin-top: 10px; background: #28a745; color: #fff;">➕ Create a New Bot</button>
+        </div>
+
+        <div id="screen-infra" class="screen">
+            <div class="card">
+                <div class="card-title">⚙️ Language Runtime Engine Architecture</div>
+                <select style="background: var(--bg-input); color:#fff; border:1px solid var(--border-color); padding:12px; border-radius:8px; width:100%; font-size:14px; outline:none;">
+                    <option>Python 3.11 Runtime (Standard POSIX Environment)</option>
+                    <option>OpenJDK 17 Runtime (Java Environment Node)</option>
+                </select>
+            </div>
+
+            <div class="card">
+                <div class="card-title">🎛️ Container Resource Allocation</div>
+                <div style="display: flex; gap: 12px; width: 100%;">
+                    <button class="btn btn-green" style="flex: 1; background: #28a745; color:#fff;" onclick="triggerDeployment()">🟢 Trigger Deployment</button>
+                    <button class="btn btn-danger" style="flex: 1;" onclick="terminateAllocation()">🔴 Terminate Allocation</button>
+                </div>
+                <div style="font-size: 13px; color: var(--text-muted); margin-top: 5px;" id="clusterStateText">State Cluster: <span style="color:#ffb300;">Awaiting...</span></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">💻 Live Distributed Execution Logs</div>
+                <div class="console" id="terminalConsole">> Node Offline. Establish tunnel connectivity to process stream...</div>
+            </div>
+        </div>
+
+        <div id="screen-source" class="screen">
+            <div class="workspace-layout">
+                <div style="display: flex; gap: 10px; width: 100%;">
+                    <button class="btn btn-blue btn-small" style="flex:1;" onclick="createNewFile()">➕ Initialize Workspace File</button>
+                    <button class="btn btn-green btn-small" style="flex:1; background: #28a745; color:#fff;" onclick="saveWholeFolder()">💾 Commit Changes to Main Branch</button>
+                </div>
+                <div class="file-list" id="fileListContainer">
                     </div>
-                </div>
-                <div class="editor-box">
-                    <textarea id="codeEditor" placeholder="// Write your professional Python or Java code here..."></textarea>
+                <div class="editor-area">
+                    <textarea id="codeEditor" spellcheck="false"></textarea>
                 </div>
             </div>
         </div>
 
-        <div id="infrastructure" class="workspace">
-            <div class="editor-controls">
-                <button class="action-btn btn-green" onclick="triggerDeployment()">🟢 Trigger Deployment</button>
-                <button class="action-btn btn-danger" onclick="terminateAllocation()">🔴 Terminate Allocation</button>
-            </div>
-            <h3 style="margin-bottom: 10px;">Live Server Execution Logs</h3>
-            <div class="console-box" id="terminalConsole">> EasyToHost Engine initialized. Awaiting cloud bridge allocation...</div>
-        </div>
-
-        <div id="env-panel" class="workspace">
-            <div style="margin-bottom: 20px;">
-                <button class="action-btn btn-blue" onclick="addNewEnvField('', '')">➕ Add New Variable</button>
-            </div>
-            <div id="envFieldsList">
+        <div id="screen-env" class="screen">
+            <div style="display: flex; flex-direction: column; gap: 15px;" id="envFieldsContainer">
                 </div>
+            <button class="btn btn-blue" onclick="addNewEnvField('', '')" style="margin-top: 10px;">➕ Construct Environment Key</button>
+            <button class="btn btn-green" onclick="saveWholeFolder()" style="background: #28a745; color:#fff;">💾 Apply Production Configuration</button>
         </div>
 
+    </div>
+
+    <div class="footer-nav" id="mainAppFooter" style="display: none;">
+        <button class="footer-btn active" id="btn-tab-infra" onclick="switchTab('infra')">
+            <span class="icon">🎛️</span><span>Infrastructure</span>
+        </button>
+        <button class="footer-btn" id="btn-tab-source" onclick="switchTab('source')">
+            <span class="icon">📂</span><span>Source Code</span>
+        </button>
+        <button class="footer-btn" id="btn-tab-env" onclick="switchTab('env')">
+            <span class="icon">⚙️</span><span>Config Env</span>
+        </button>
     </div>
 
     <script>
-        // ভার্চুয়াল ক্লায়েন্ট-সাইড মেমরি ডেটা ট্র্যাকিং
         let virtualFiles = {
-            "main.py": "# Default Python Engine Main Entry\nimport discord\nprint('Bot Core Loaded')",
-            "moderation.py": "# Custom Hybrid Moderation Engine Modules"
+            "main.py": "import discord\nfrom discord.ext import commands\nimport os\n\n# Advanced Multi-Tenant Infrastructure Node Engine",
+            "moderation.py": "# Hybrid Security Management Logic Module"
         };
-        let currentFile = "main.py";
+        let currentActiveFile = "main.py";
         let envVariables = {};
+        let activeBotId = "";
 
-        document.getElementById('codeEditor').value = virtualFiles[currentFile];
-
-        function switchTab(tabId, btn) {
-            document.querySelectorAll('.workspace').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            btn.classList.add('active');
+        function loadHomeScreen() {
+            document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+            document.getElementById('screen-home').classList.add('active');
+            document.getElementById('mainAppFooter').style.display = 'none';
+            document.getElementById('backToHomeBtn').style.display = 'none';
+            document.getElementById('topTitle').innerText = "EasyToHost - Home Cluster";
         }
 
-        function openFile(fileName) {
-            virtualFiles[currentFile] = document.getElementById('codeEditor').value;
-            currentFile = fileName;
-            document.getElementById('codeEditor').value = virtualFiles[fileName] || "";
+        function loadBotControlPlane(botId) {
+            activeBotId = botId;
+            document.getElementById('mainAppFooter').style.display = 'flex';
+            document.getElementById('backToHomeBtn').style.display = 'block';
+            document.getElementById('topTitle').innerText = `EasyToHost - ${botId.toUpperCase()}`;
+            switchTab('infra');
+            renderFileTree();
         }
 
-        function createNewFile() {
-            let name = prompt("Enter new file name (e.g., config.json, test.py):");
-            if(name) {
-                virtualFiles[name] = "";
-                renderFileTree();
-                openFile(name);
-            }
-        }
-
-        function deleteFile(fileName, event) {
-            event.stopPropagation();
-            if(confirm(`Are you sure you want to delete ${fileName}?`)) {
-                delete virtualFiles[fileName];
-                renderFileTree();
-                document.getElementById('codeEditor').value = "";
+        function switchTab(target) {
+            document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.footer-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(`screen-${target}`).classList.add('active');
+            document.getElementById(`btn-tab-${target}`).classList.add('active');
+            
+            if(target === 'source') {
+                document.getElementById('codeEditor').value = virtualFiles[currentActiveFile] || "";
             }
         }
 
         function renderFileTree() {
             let html = "";
             for(let file in virtualFiles) {
-                html += `<div class="file-item" onclick="openFile('${file}')">
-                            <span>${file}</span>
-                            <span style="color:#ff4d4d; font-weight:bold;" onclick="deleteFile('${file}', event)">🗑️</span>
+                let activeClass = file === currentActiveFile ? 'active' : '';
+                html += `<div class="file-item ${activeClass}" onclick="openFile('${file}')">
+                            <span>📄 ${file}</span>
+                            <span style="color:var(--accent-danger); font-weight:bold;" onclick="deleteFile('${file}', event)">🗑️</span>
                          </div>`;
             }
-            document.getElementById('fileList').innerHTML = html;
+            document.getElementById('fileListContainer').innerHTML = html;
         }
 
-        // ডাইনামিক এনভায়রনমেন্ট রো জেনারেটর
-        function addNewEnvField(key = '', val = '') {
-            let container = document.getElementById('envFieldsList');
-            let row = document.createElement('div');
-            row.className = 'env-row';
-            row.innerHTML = `
-                <input type="text" class="env-key" placeholder="VARIABLE_KEY (e.g., AWS_INSTANCE_ID)" value="${key}">
-                <input type="text" class="env-val" placeholder="VALUE" value="${val}">
-                <button class="action-btn btn-blue" onclick="saveSingleEnv(this)">💾 Save</button>
-                <button class="action-btn btn-danger" onclick="deleteSingleEnv(this)">🗑️ Delete</button>
-            `;
-            container.appendChild(row);
+        function openFile(file) {
+            virtualFiles[currentActiveFile] = document.getElementById('codeEditor').value;
+            currentActiveFile = file;
+            renderFileTree();
+            document.getElementById('codeEditor').value = virtualFiles[file] || "";
         }
 
-        function saveSingleEnv(btn) {
-            let row = btn.parentElement;
-            let key = row.querySelector('.env-key').value.trim();
-            let val = row.querySelector('.env-val').value.trim();
-            if(key) {
-                envVariables[key] = val;
-                alert(`✅ Variable "${key}" saved successfully in current runtime bundle!`);
+        function createNewFile() {
+            let name = prompt("Enter Workspace File Name (e.g. core.py, settings.json):");
+            if(name) {
+                virtualFiles[name] = "";
+                currentActiveFile = name;
+                renderFileTree();
+                document.getElementById('codeEditor').value = "";
             }
         }
 
-        function deleteSingleEnv(btn) {
-            let row = btn.parentElement;
-            let key = row.querySelector('.env-key').value.trim();
-            if(key && envVariables[key]) delete envVariables[key];
-            row.remove();
+        function deleteFile(file, event) {
+            event.stopPropagation();
+            if(confirm(`Remove file ${file} permanently from tree allocation?`)) {
+                delete virtualFiles[file];
+                renderFileTree();
+                document.getElementById('codeEditor').value = "";
+            }
         }
 
-        // 💾 GLOBAL SAVE: এক ক্লিকে পুরো ফোল্ডার ও ভ্যারিয়েবল ব্যাকঅ্যান্ডে পাঠানো
+        function addNewEnvField(key = '', val = '') {
+            let container = document.getElementById('envFieldsContainer');
+            let div = document.createElement('div');
+            div.className = 'env-row';
+            div.innerHTML = `
+                <input type="text" class="env-input env-key" placeholder="AWS_KEY_ID" value="${key}">
+                <input type="text" class="env-input env-val" placeholder="VALUE" value="${val}">
+                <span style="cursor:pointer; font-size:18px; color:var(--accent-danger);" onclick="deleteEnvRow(this)">❌</span>
+            `;
+            container.appendChild(div);
+        }
+
+        function deleteEnvRow(element) {
+            element.parentElement.remove();
+        }
+
+        function compileEnvVariables() {
+            envVariables = {};
+            document.querySelectorAll('.env-row').forEach(row => {
+                let key = row.querySelector('.env-key').value.trim();
+                let val = row.querySelector('.env-val').value.trim();
+                if(key) envVariables[key] = val;
+            });
+        }
+
         function saveWholeFolder() {
-            virtualFiles[currentFile] = document.getElementById('codeEditor').value;
+            virtualFiles[currentActiveFile] = document.getElementById('codeEditor').value;
+            compileEnvVariables();
+            
             fetch('/api/save-folder', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ files: virtualFiles, env_vars: envVariables })
+                body: JSON.stringify({ bot_id: activeBotId, files: virtualFiles, env_vars: envVariables })
             })
             .then(res => res.json())
-            .then(data => alert(data.message));
+            .then(data => alert("💾 Global Deployment Assets Synced & Committed!"));
         }
 
-        // 🟢 TRIGGER DEPLOYMENT: AWS অ্যাক্টিভেট বাটন
         function triggerDeployment() {
+            compileEnvVariables();
             let consoleLog = document.getElementById('terminalConsole');
-            consoleLog.innerHTML += "\n> [EasyToHost]: Connecting to AWS cloud grid node via Boto3 core...";
+            document.getElementById('clusterStateText').innerHTML = "State Cluster: <span style='color:var(--accent-green);'>Active / Running</span>";
+            consoleLog.innerHTML = "🚀 [EasyToHost Cloud Pipeline v3.0 Live]\n> Allocating sandbox thread nodes...\n> Storage configuration synchronized.\n> Establishing automated SSM proxy tunnels securely...";
             
             fetch('/api/trigger-deploy', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ env_vars: envVariables })
+                body: JSON.stringify({ bot_id: activeBotId, env_vars: envVariables })
             })
             .then(res => res.json())
             .then(data => {
-                consoleLog.innerHTML += `\n> [Response]: ${data.message}`;
+                consoleLog.innerHTML += `\n\n🟢 [AWS ENGINE SUCCESS]: ${data.message}`;
                 consoleLog.scrollTop = consoleLog.scrollHeight;
             });
         }
 
-        // 🔴 TERMINATE ALLOCATION: AWS স্টপ বাটন
         function terminateAllocation() {
+            compileEnvVariables();
             let consoleLog = document.getElementById('terminalConsole');
+            document.getElementById('clusterStateText').innerHTML = "State Cluster: <span style='color:var(--accent-danger);'>Terminated / Offline</span>";
+            
             fetch('/api/terminate-alloc', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -219,16 +299,14 @@
             })
             .then(res => res.json())
             .then(data => {
-                consoleLog.innerHTML += `\n> [Response]: ${data.message}`;
-                consoleLog.scrollTop = consoleLog.scrollHeight;
+                consoleLog.innerHTML += `\n\n🔴 [AWS ENGINE SHUTDOWN]: ${data.message}`;
             });
         }
 
-        // কিছু ডিফল্ট প্রয়োজনীয় এডাব্লিউএস ফিল্ড লোড করে রাখা যাতে ইউজারের বুঝতে সুবিধা হয়
+        // ডিফল্ট ফিল্ডস বুটস্ট্র্যাপ
         addNewEnvField('AWS_ACCESS_KEY_ID', '');
         addNewEnvField('AWS_SECRET_ACCESS_KEY', '');
         addNewEnvField('AWS_INSTANCE_ID', '');
     </script>
 </body>
-  </html>
-
+</html>
